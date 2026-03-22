@@ -1,0 +1,50 @@
+# === Garmin data & credentials (NEVER commit) ===
+export/
+.env
+*.env
+.garminconnect/
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+*.whl
+
+# === Virtual environments ===
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# === IDE / Editor ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+
+# === OS files ===
+Thumbs.db
+Desktop.ini
+.DS_Store
+._*
+
+# === Logs & temp ===
+*.log
+*.tmp
+*.bak
+
+# === .NET ===
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
