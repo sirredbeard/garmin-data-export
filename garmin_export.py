@@ -199,6 +199,14 @@ def _print_login_error(exc: Exception, attempt: int, max_attempts: int):
         print(f"\n  You have {remaining} {'attempt' if remaining == 1 else 'attempts'} left. Try again:\n")
 
 
+def _persist_auth_tokens(garmin: Garmin, tokenstore_path: Path):
+    """Save tokens with both legacy and current garminconnect clients."""
+    auth_client = getattr(garmin, "garth", None) or getattr(garmin, "client", None)
+    if auth_client is None or not hasattr(auth_client, "dump"):
+        raise RuntimeError("Unsupported garminconnect version: token storage API not found")
+    auth_client.dump(str(tokenstore_path))
+
+
 def authenticate(tokenstore: str) -> Garmin:
     """Authenticate to Garmin Connect.
 
@@ -288,7 +296,7 @@ def authenticate(tokenstore: str) -> Garmin:
 
     # Save tokens for next time
     tokenstore_path.mkdir(parents=True, exist_ok=True)
-    garmin.garth.dump(str(tokenstore_path))
+    _persist_auth_tokens(garmin, tokenstore_path)
     log.info(f"Authenticated -- tokens saved to {tokenstore_path}")
     log.info("   (Future runs will use cached tokens automatically)")
     return garmin
