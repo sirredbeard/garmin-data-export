@@ -34,7 +34,7 @@ from getpass import getpass
 from pathlib import Path
 from typing import Any, Optional
 
-from garth.exc import GarthHTTPError
+import requests
 
 from garminconnect import (
     Garmin,
@@ -119,7 +119,7 @@ def safe_call(fn, *args, label: str = "", **kwargs) -> Optional[Any]:
             log.warning(f"  Retry failed ({label}): {e}")
             _limiter.on_error()
             return None
-    except GarthHTTPError as e:
+    except requests.exceptions.HTTPError as e:
         status = getattr(getattr(e, "response", None), "status_code", None)
         if status == 429:
             _limiter.on_rate_limit()
@@ -216,7 +216,7 @@ def authenticate(tokenstore: str) -> Garmin:
             garmin.login(str(tokenstore_path))
             log.info("Authenticated with cached tokens")
             return garmin
-        except (FileNotFoundError, GarthHTTPError, GarminConnectAuthenticationError,
+        except (FileNotFoundError, requests.exceptions.HTTPError, GarminConnectAuthenticationError,
                 GarminConnectConnectionError) as e:
             log.info(f"Cached tokens expired or invalid ({type(e).__name__}), need fresh login")
         except Exception as e:
@@ -273,7 +273,7 @@ def authenticate(tokenstore: str) -> Garmin:
             log.error(f"Connection error -- can't reach Garmin servers. Check your internet.")
             log.debug(f"Details: {e}")
             sys.exit(1)
-        except (GarthHTTPError, Exception) as e:
+        except (requests.exceptions.HTTPError, Exception) as e:
             _print_login_error(e, attempt, max_attempts)
             if attempt == max_attempts:
                 sys.exit(1)
@@ -288,7 +288,7 @@ def authenticate(tokenstore: str) -> Garmin:
 
     # Save tokens for next time
     tokenstore_path.mkdir(parents=True, exist_ok=True)
-    garmin.garth.dump(str(tokenstore_path))
+    garmin.client.dump(str(tokenstore_path))
     log.info(f"Authenticated -- tokens saved to {tokenstore_path}")
     log.info("   (Future runs will use cached tokens automatically)")
     return garmin
