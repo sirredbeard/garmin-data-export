@@ -1418,8 +1418,8 @@ class GarminExporter:
             data = {}
             data["personal_records"] = safe_call(self.api.get_personal_record, label="personal_records")
             data["badges"] = safe_call(self.api.get_earned_badges, label="badges")
-            data["active_goals"] = safe_call(self.api.get_goals, "active", 0, 100, label="active_goals")
-            data["past_goals"] = safe_call(self.api.get_goals, "past", 0, 100, label="past_goals")
+            data["active_goals"] = safe_call(self.api.get_goals, "active", 1, 100, label="active_goals")
+            data["past_goals"] = safe_call(self.api.get_goals, "past", 1, 100, label="past_goals")
             self.cache.put_section("goals", data)
 
         if _compact_mode:

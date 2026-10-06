@@ -41,6 +41,8 @@ for your account, it says so instead of silently skipping it.
 
 ## Setup
 
+Requires Python 3.12 or later for the current `garminconnect` release.
+
 ```
 pip install garminconnect garth
 ```

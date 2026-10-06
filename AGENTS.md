@@ -246,7 +246,41 @@ Only two PyPI packages (see `requirements.txt`):
 - `garminconnect` -- Garmin Connect API wrapper
 - `garth` -- OAuth/SSO authentication library (pulled in by garminconnect)
 
-Python 3.7+ required (uses f-strings, `typing.Optional`, `pathlib`, etc.).
+The script uses Python 3.7-compatible syntax, but the current
+`garminconnect` release requires Python 3.12 or later.
+
+### Upstream compatibility
+
+The current upstream release is `python-garminconnect` 0.3.17. Its release
+notes changed `get_goals()` and the badge challenge methods to use one-based
+pagination. Passing `start=0` now raises `ValueError`. This project passes
+`start=1` for active and past goals.
+
+Other recent upstream changes add training-load methods, workout intensity
+targets, timezone-aware FIT uploads, and clearer login errors. None of those
+change this exporter's current API calls.
+
+When updating the dependency, check the
+[upstream release notes](https://github.com/cyberjunky/python-garminconnect/releases)
+for breaking changes before changing the exporter.
+
+## Build and validation
+
+Run the Python syntax check and the .NET build from the repository root:
+
+```bash
+python3 -m py_compile garmin_export.py
+dotnet build
+```
+
+The script has no checked-in test suite. Use `python3 garmin_export.py --help`
+for a non-authenticated smoke test. Do not run an export without Garmin
+credentials and a deliberate output directory.
+
+## Skills
+
+- [Building](.github/skills/building-garmin-data-export/SKILL.md)
+- [Using](.github/skills/using-garmin-data-export/SKILL.md)
 
 ## Files
 
