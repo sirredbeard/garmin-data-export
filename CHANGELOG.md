@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.0.0 - November 6, 2026
+## v0.0.3 - November 6, 2026
 
 This release replaces the bulk exporter with a daily store. It is a breaking change: the old script, it's command line, and the .NET wrapper are gone.
 
@@ -21,6 +21,6 @@ The bulk export is still there, as the `export` command, for long-term analysis.
 Removed:
 
 - `garmin_export.py` and it's cache. The cache never expired, which was fine for a one-off export and wrong for data Garmin rescores overnight.
-- The .NET wrapper (`Program.cs`, the project file, and the solution). There are no release zips for v2.0.0. It is a Python tool now: Python 3.12 or later, install with `pip install -r requirements.txt`, and log in once with `python -m garmin_daily login`.
+- The .NET wrapper (`Program.cs`, the project file, and the solution). There are no release zips for v0.0.3. It is a Python tool now: Python 3.12 or later, install with `pip install -r requirements.txt`, and log in once with `python -m garmin_daily login`.
 
 On my data, a one-day sync takes about 8 seconds and a seven-day sync about 26 seconds.

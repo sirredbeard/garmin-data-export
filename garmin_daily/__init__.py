@@ -6,4 +6,4 @@ command -- show, activities, weight, export -- reads the store and
 never touches the network unless it is told to sync first.
 """
 
-__version__ = "2.0.0"
+__version__ = "0.0.3"

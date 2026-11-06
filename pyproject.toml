@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "garmin-data-export"
-version = "2.0.0"
+version = "0.0.3"
 description = "Pull Garmin Connect data into a local store a personal agent can read daily, with a bulk export for long-term analysis."
 readme = "README.md"
 license = { text = "Apache-2.0" }
