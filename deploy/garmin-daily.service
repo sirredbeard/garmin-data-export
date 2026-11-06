@@ -1,0 +1,9 @@
+[Unit]
+Description=Garmin daily sync (garmin-data-export)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/arduino/garmin-export
+ExecStart=/home/arduino/garmin-export/scripts/daily.sh

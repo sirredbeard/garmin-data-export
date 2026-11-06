@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "garmin-data-export"
+version = "2.0.0"
+description = "Pull Garmin Connect data into a local store a personal agent can read daily, with a bulk export for long-term analysis."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.12"
+dependencies = [
+    "garminconnect>=0.3.17",
+    "garth>=0.8",
+]
+
+[project.scripts]
+garmin-daily = "garmin_daily.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["garmin_daily*"]
+

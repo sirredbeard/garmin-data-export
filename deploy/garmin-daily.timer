@@ -1,0 +1,12 @@
+[Unit]
+Description=Run the Garmin daily sync each morning
+
+[Timer]
+# 07:15 local. Overnight sleep and HRV are final by then, and the
+# previous day is complete. The three-day window also repairs
+# anything the watch synced late the day before.
+OnCalendar=*-*-* 07:15:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

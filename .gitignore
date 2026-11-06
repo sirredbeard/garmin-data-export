@@ -1,4 +1,5 @@
-# === Garmin data & credentials (NEVER commit) ===
+# === Garmin data and credentials (never commit) ===
+data/
 export/
 .env
 *.env
@@ -19,17 +20,14 @@ build/
 venv/
 .venv/
 env/
-.env/
 ENV/
 
-# === IDE / Editor ===
+# === IDE and editor ===
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-.project
-.classpath
 
 # === OS files ===
 Thumbs.db
@@ -37,14 +35,7 @@ Desktop.ini
 .DS_Store
 ._*
 
-# === Logs & temp ===
+# === Logs and temp ===
 *.log
 *.tmp
 *.bak
-
-# === .NET ===
-bin/
-obj/
-*.user
-*.suo
-*.userprefs
