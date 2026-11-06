@@ -5,35 +5,35 @@ description: Build, validate, and maintain garmin-data-export.
 
 # Building garmin-data-export
 
-Use the repository root as the working directory.
+Use the repository root as the working directory. The tool is a Python
+package, `garmin_daily`. There is no .NET project anymore; the wrapper
+only forwarded arguments to the Python script, and it was removed in
+the daily-use rebuild.
 
 ## Dependencies
 
-Install the Python dependencies before running the exporter:
+Python 3.12 or later, in the checkout's virtual environment:
 
 ```bash
-python3 -m pip install -r requirements.txt
+.venv/bin/pip install -r requirements.txt
 ```
-
-The .NET wrapper targets `net11.0` and copies `garmin_export.py` and
-`requirements.txt` into its output directory.
 
 ## Validation
 
 Run the smallest checks that cover the change:
 
 ```bash
-python3 -m py_compile garmin_export.py
-python3 garmin_export.py --help
-dotnet build
+.venv/bin/python -m unittest discover -s tests
+.venv/bin/python -m py_compile garmin_daily/*.py
+.venv/bin/python -m garmin_daily --help
 ```
 
-There is no checked-in test suite. Do not run a real export as a build check.
-It needs Garmin credentials and can make many API calls.
+The tests run offline. Do not run a real sync or export as a build
+check. A sync needs the token cache and makes live API calls.
 
 ## Upstream API changes
 
 Check the
 [python-garminconnect release notes](https://github.com/cyberjunky/python-garminconnect/releases)
-before changing API calls. Release `0.3.17` made goal pagination one-based, so
-calls to `get_goals()` must use `start=1` or a later value.
+before changing API calls. Release 0.3.17 made goal pagination
+one-based, so calls to `get_goals()` must use `start=1` or later.

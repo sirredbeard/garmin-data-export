@@ -1,263 +1,206 @@
 # Garmin Connect Data Export
 
-Pulls your health and fitness data from Garmin Connect and saves it as
-a plain text file with complete JSON data blocks. Designed for uploading
-to LLM tools like NotebookLM, ChatGPT, and Claude. Also useful for
-local backup or having your own numbers outside the Garmin app.
+Pulls your health and fitness data from Garmin Connect into a local
+store on your own machine, in a shape a personal agent can use every
+day. One JSON file per day, one per activity, and a small summary for
+each day with the numbers a daily check-in actually needs: steps,
+sleep, stress, resting heart rate, HRV, body battery, workouts, and
+weigh-ins.
+
+It started as a bulk export tool for NotebookLM (now Gemini Notebook):
+one giant text file with everything in it. That file still exists, as
+the `export` command, for long-term analysis. Day to day, nobody wants
+to parse a 170 MB text file to answer "how did I sleep last night."
+The store is the tool now. The export is a report the store can print.
 
 No Garmin developer API key required. Under the hood this uses the
 [python-garminconnect](https://github.com/cyberjunky/python-garminconnect)
 library, which logs in through the same SSO flow as the Garmin website.
 
-## What it exports
-
-Everything. Every API response is dumped as complete JSON, nothing
-gets filtered or summarized, so you get every field Garmin returns
-including dates, timestamps, and metadata. If a category has no data
-for your account, it says so instead of silently skipping it.
-
-- **Profile**: user info, settings, devices, alarms, activity types
-- **Daily health**: steps, heart rate, sleep, stress, body battery,
-  SpO2, HRV, respiration, intensity minutes, all-day events, lifestyle
-  logging. One section per day.
-- **Activities**: every activity with full summary, splits, HR/power
-  zones, exercise sets, weather, and complete time-series data.
-- **Body composition**: weight, BMI, body fat, muscle/bone mass,
-  weigh-ins (chunked yearly for long histories).
-- **Training metrics**: VO2 max, fitness age, training readiness,
-  lactate threshold, cycling FTP, hill/endurance scores, running
-  tolerance, race predictions.
-- **Goals and records**: personal records, earned badges, active and
-  past goals.
-- **Trends**: weekly aggregates (steps, stress, intensity minutes),
-  daily steps, floors, progress summaries, body battery trend.
-- **Golf**: scorecards, shot data per round.
-- **Gear**: equipment list, stats per item, activity type defaults.
-- **Training plans**: active and past plans with full details.
-- **Workouts**: saved workouts with full structure.
-- **Hydration**: daily fluid intake (per day, cached).
-- **Nutrition**: food logs, meals, nutrition settings (per day, cached).
-- **Women's health**: menstrual calendar, pregnancy summary.
-
 ## Setup
 
-Requires Python 3.12 or later for the current `garminconnect` release.
+Requires Python 3.12 or later.
 
 ```
-pip install garminconnect garth
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
 ```
 
-## First run
-
-You need to log in once. After that, tokens are cached locally for about
-a year and you won't be asked again.
+Log in once. Tokens cache under `~/.garminconnect` for about a year,
+and every later run is non-interactive. That is what makes a scheduled
+daily sync possible.
 
 ```
-python garmin_export.py --login
+.venv/bin/python -m garmin_daily login
 ```
 
-It will ask for your Garmin email and password (sent directly to Garmin's
-servers, not stored by this tool). If you have MFA enabled it will prompt
-for the code too.
-
-If you'd rather not type credentials every time you set up a new machine,
-drop them in a `.env` file next to the script:
+It asks for your Garmin email and password (sent directly to Garmin's
+servers, not stored by this tool) and an MFA code if you have one. Or
+put the credentials in a `.env` file next to the checkout:
 
 ```
 GARMIN_EMAIL=you@example.com
 GARMIN_PASSWORD=your-password
 ```
 
-Or use environment variables (`GARMIN_EMAIL`, `GARMIN_PASSWORD`).
-
-## Usage
+## Daily use
 
 ```
-# defaults: last 30 days of health data, up to 100 activities
-python garmin_export.py
+# Pull today, yesterday, and the day before. The default window is
+# three days on purpose: today's numbers are still moving, yesterday's
+# sleep is often finalized overnight, and a watch can sync late.
+.venv/bin/python -m garmin_daily sync
 
-# everything, goes back to your very first Garmin activity
-python garmin_export.py --all
+# Read yesterday's summary. No network, prints JSON.
+.venv/bin/python -m garmin_daily show
 
-# resume an interrupted export (cache picks up where it stopped)
-python garmin_export.py --all
+# Today so far, as a one-page summary instead of JSON.
+.venv/bin/python -m garmin_daily show today --format md
 
-# force a clean re-fetch
-python garmin_export.py --all --no-cache
+# The last seven complete days, rolled up.
+.venv/bin/python -m garmin_daily show --week
 
-# full year, more activities
-python garmin_export.py --days 365 --activities 500
+# Workouts and weigh-ins.
+.venv/bin/python -m garmin_daily activities --days 7
+.venv/bin/python -m garmin_daily weight --days 30
 
-# go slower if you're worried about rate limits
-python garmin_export.py --days 365 --delay 1.0
-
-# split into multiple files for LLM tools with word count limits
-python garmin_export.py --all --split
-
-# incremental update: only fetch data since last export
-python garmin_export.py --update
+# What is in the store, when it last synced, whether tokens are cached.
+.venv/bin/python -m garmin_daily status
 ```
 
-### Recommended workflow
+Read commands (`show`, `activities`, `weight`, `status`) never touch
+the network. They read the store and print one JSON object to stdout.
+Logs go to stderr, so stdout stays safe to pipe into another program.
+Add `--fetch` to any read command to sync its window first.
 
-Do a full initial export once:
-
-```
-python garmin_export.py --all --split
-```
-
-Then use `--update` for incremental data going forward:
+Sync windows:
 
 ```
-python garmin_export.py --update
+.venv/bin/python -m garmin_daily sync --today           # today only
+.venv/bin/python -m garmin_daily sync --yesterday       # yesterday only
+.venv/bin/python -m garmin_daily sync --days 7          # the past week
+.venv/bin/python -m garmin_daily sync --date 2026-11-05 # one day
+.venv/bin/python -m garmin_daily sync --from 2026-10-01 --to 2026-10-31
+.venv/bin/python -m garmin_daily sync --no-detail       # skip activity detail calls, faster
 ```
 
-Output goes into `export/` as a single timestamped plain text file, like
-`garmin_export_2026-03-22_162534.txt`.
+On the test account, a one-day sync takes about 8 seconds and a
+seven-day sync about 26 seconds.
 
-## Output format
+## Run it every day
 
-Everything lives in one `.txt` file. The structure uses plain text section
-headers with raw JSON data blocks (no markdown formatting, no code fences).
-This format was chosen because NotebookLM and other LLM tools have known
-issues parsing markdown files. Plain text with raw JSON works best for
-RAG indexing. By default, nothing is filtered, truncated, or summarized.
-
-## Compact mode
-
-A full `--all` export can be 150+ MB, which is too large for some LLM
-tools (NotebookLM, ChatGPT file upload, etc.). Use `--compact` to reduce
-the file size significantly:
+`scripts/daily.sh` runs the three-day sync and logs to
+`data/logs/`. Two ways to schedule it:
 
 ```
-python garmin_export.py --all --compact
+# systemd user timer (units in deploy/, runs at 07:15 local)
+cp deploy/garmin-daily.service deploy/garmin-daily.timer ~/.config/systemd/user/
+systemctl --user enable --now garmin-daily.timer
+
+# or cron
+15 7 * * * /path/to/garmin-export/scripts/daily.sh
 ```
 
-What compact mode does:
+07:15 is deliberate. Overnight sleep and HRV are final by then, and
+the previous day is complete.
 
-- Strips null, empty, and zero-value fields from all JSON
-- Uses single-line JSON instead of pretty-printed (saves whitespace)
-- Drops activity time-series data (second-by-second sensor readings);
-  summaries, splits, and zones are still included
-- Downsamples daily high-frequency data (heart rate, stress, sleep,
-  respiration) from per-minute readings to hourly averages
-- Each section becomes a single JSON block with a schema description
+## What sync pulls
 
-The same cache is used for both modes. Compact mode just writes less data
-to the output file; it does not affect what gets cached or fetched.
+Per day: daily summary (steps, distance, floors, calories), heart
+rate, resting heart rate, sleep with stages and score, all-day stress,
+SpO2, respiration, HRV, body battery and its events, intensity
+minutes, all-day events, lifestyle logging, training readiness
+(regular and morning), hydration, and nutrition.
 
-## Split mode (for LLM tools)
+Per window, in one call each: weigh-ins, body composition, daily step
+totals, resting heart rate, HRV summaries, VO2 max and fitness age,
+and blood pressure.
 
-Many LLM tools have per-source word count limits. NotebookLM caps at
-500,000 words per source, and other tools have similar restrictions.
-Use `--split` (implies `--compact`) to split the export into multiple
-files, each under the limit:
+Per activity in the window: the summary, plus full detail -- splits,
+HR and power zones, exercise sets, weather, and time-series data.
+Detail is fetched once per activity and kept, because it costs nine
+calls and does not change.
 
-```
-python garmin_export.py --all --split
-```
+If a category has no data for your account, it stores nothing for it
+and says so in the summary. Nothing is silently dropped: a day with
+no sleep record is marked incomplete, not zero.
 
-This produces files like `garmin_export_..._part1of6.txt`. Each file
-includes its own header listing which sections it contains. Upload all
-files as separate sources.
+## The store
 
-NotebookLM supports up to 50 sources per notebook, so even a multi-year
-export with 6-8 files fits easily. Other LLM tools that accept multiple
-file uploads benefit from the same approach. Smaller files stay within
-per-file token limits while preserving all data.
+Everything lives under `data/` (override with `--data` or
+`GARMIN_DATA_DIR`). The layout is documented at the top of
+`garmin_daily/store.py`. The short version:
 
-## Update mode (incremental exports)
+- `data/daily/2026-11-05.json` -- raw API responses for one day
+- `data/daily/2026-11-05.summary.json` -- the day's headline numbers
+- `data/activities/` -- one file per activity, plus an index
+- `data/range/` -- weigh-ins and the other window data, by date
+- `data/summaries/latest.json` -- the newest complete day
+- `data/summaries/week.json` -- the last seven complete days, rolled up
+- `data/manifest.json` -- what is stored and when it was fetched
+- `data/state.json` -- the last sync run and any errors it hit
 
-After doing a full `--all --split` export, use `--update` to fetch only
-the data that has arrived since the last export:
+"Complete day" means a day that has ended. Today gets a summary file
+like any other day, but the latest pointer and the week rollup only
+use finished days. A half-synced morning should not drag a weekly
+average.
 
-```
-python garmin_export.py --update
-```
+Raw days are big, hundreds of kilobytes of minute-level time series.
+Summaries are about two kilobytes. Read summaries by default. Open a
+raw file only for a question the summary does not answer.
 
-The tool finds the most recent export file(s) in the output directory,
-parses the end date, and sets the start date to one day before that (to
-catch any late-arriving data). It implies `--compact` and only includes
-per-day and per-activity sections: Daily Health, Activities, Hydration,
-and Nutrition. Sections that don't change (Profile, Body Composition,
-Training Metrics, Goals, Trends, Golf, Gear, Training Plans, Workouts,
-Women's Health) are skipped since they're already in the base export.
+## Bulk export
 
-Output filename: `garmin_export_YYYY-MM-DD_HHMMSS_compact_update.txt`
-
-If no previous export is found, it falls back to the `--days` default
-(30 days).
-
-## .NET project structure
-
-This is a .NET solution that wraps a Python export script. The Garmin
-Connect library (`python-garminconnect`) is Python-only, so the actual
-data fetching runs in Python. The .NET project provides the solution
-structure, build integration, and can be extended with C# tooling.
-
-To build and run:
+For long-term analysis, render the store as the plain text file this
+project started as:
 
 ```
-dotnet build
-dotnet run
+.venv/bin/python -m garmin_daily export --days 90 --compact
+.venv/bin/python -m garmin_daily export --all --split
 ```
 
-This invokes the Python script with default arguments. Pass additional
-flags after `--`:
+`--all` backfills the store to your oldest activity first. The
+backfill skips days already stored, so an interrupted run resumes on
+the next try. `--split` cuts the output under the 500,000-word
+per-source limit in Gemini Notebook. The format is plain text with
+raw JSON blocks and no code fences, because NotebookLM's indexer
+skips fenced content and has known trouble with markdown files.
 
-```
-dotnet run -- --all --split
-```
+## Freshness and caching
 
-Requires Python 3.7+ with dependencies installed (`pip install -r requirements.txt`).
+There is no permanent cache anymore. The old design cached every day
+forever, which is right for history and wrong for this week: sleep
+gets rescored, stress backfills, a watch syncs a day late. Now:
 
-## Options
-
-| Flag | Default | What it does |
-|------|---------|--------------|
-| `--all` | | Export complete history (auto-detects start date) |
-| `--days N` | 30 | How many days of daily health data to pull |
-| `--activities N` | 100 | Max number of activities to export |
-| `--output DIR` | ./export | Where to write the file |
-| `--delay SEC` | 0.15 | Base delay between API calls (seconds) |
-| `--no-cache` | | Re-fetch everything, ignore cached data |
-| `--compact` | | Smaller output for LLM upload (see above) |
-| `--split` | | Split output into multiple files under 480K words each |
-| `--update` | | Export only new data since the last export (implies `--compact`) |
-| `--login` | | Just log in and cache tokens, then exit |
-| `--tokenstore DIR` | ~/.garminconnect | Where to store auth tokens |
-| `--verbose` | | Show debug output |
-
-When `--all` is used, `--days` and `--activities` are ignored. The tool
-finds your oldest activity and works backward from there.
-
-## Caching
-
-Large exports (especially `--all` on multi-year accounts) can take a
-while. If the export gets interrupted, just run the same command again.
-The tool caches each day's health data, each activity, and each section
-as it goes. On re-run it only fetches what's not already in the cache.
-
-Cache is permanent, it never invalidates or expires. Use `--no-cache`
-to force a full re-fetch from scratch, or just delete `export/.cache/`.
+- Days in a sync window are always refetched.
+- Activity detail and days outside the window are kept as stored.
+- Range data is refetched for the window and merged by date.
+- Every write is atomic, so a killed sync leaves whole files.
 
 ## Rate limiting
 
-The tool paces itself automatically. It starts at 0.15 seconds between
-calls, backs off if Garmin pushes back (429), and ramps back up when
-things calm down. Every 250 calls it takes a short breather. For big
-exports the delay adjusts on its own, but you can bump `--delay` to 1.0
-or higher if you want to play it safe.
+The tool paces itself. It starts at 0.15 seconds between calls,
+backs off when Garmin answers 429, and takes a short breather every
+250 calls. Raise the base delay with `--delay 1.0` if you want to
+play it safe on a long backfill.
+
+## Development
+
+```
+.venv/bin/python -m unittest discover -s tests
+.venv/bin/python -m py_compile garmin_daily/*.py
+.venv/bin/python -m garmin_daily --help
+```
+
+The tests run offline. They pin down the Garmin response shapes the
+extractor depends on: the sleep score is nested, weights arrive in
+grams, and stress durations are in seconds.
 
 ## Security
 
-The `.gitignore` keeps your data out of version control:
-- `export/` (your health data)
-- `.env` (credentials)
-- `.garminconnect/` (auth tokens)
-
-Don't commit any of those.
+`.gitignore` keeps your data out of version control: `data/`,
+`export/`, `.env`, and the token cache. Do not commit any of those.
 
 ## License
 
-[Apache 2.0](LICENSE).
+[Apache 2.0](LICENSE)

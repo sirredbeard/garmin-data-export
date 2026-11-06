@@ -1,44 +1,44 @@
 ---
 name: using-garmin-data-export
-description: Run garmin-data-export and choose export modes safely.
+description: Run garmin-data-export and choose commands safely.
 ---
 
 # Using garmin-data-export
 
-Install Python 3.12+ and the dependencies:
-
-```bash
-python3 -m pip install -r requirements.txt
-```
-
 Log in once to cache Garmin tokens:
 
 ```bash
-python3 garmin_export.py --login
+.venv/bin/python -m garmin_daily login
 ```
 
-The tool reads `GARMIN_EMAIL` and `GARMIN_PASSWORD`, or the same values from
-a `.env` file. Tokens are stored under `~/.garminconnect`.
+Tokens are stored under `~/.garminconnect`. Credentials come from
+`GARMIN_EMAIL` and `GARMIN_PASSWORD`, or a `.env` file.
 
-## Common exports
+## Daily commands
 
 ```bash
-python3 garmin_export.py
-python3 garmin_export.py --all --split
-python3 garmin_export.py --update
-python3 garmin_export.py --all --compact
+.venv/bin/python -m garmin_daily sync            # last 3 days
+.venv/bin/python -m garmin_daily show            # yesterday, JSON
+.venv/bin/python -m garmin_daily show --week
+.venv/bin/python -m garmin_daily activities --days 7
+.venv/bin/python -m garmin_daily weight --days 30
+.venv/bin/python -m garmin_daily status
 ```
 
-Use `--update` after the initial full export. It fetches the overlapping date
-range needed for late-arriving Garmin data. Use `--no-cache` only when a clean
-re-fetch is intentional.
+Read commands never use the network and print JSON to stdout. Add
+`--fetch` to sync first. Global flags (`--data`, `--tokenstore`,
+`--delay`) go before the subcommand.
 
-The .NET wrapper accepts the same flags:
+## Bulk export
 
 ```bash
-dotnet run -- --all --split
+.venv/bin/python -m garmin_daily export --days 90 --compact
+.venv/bin/python -m garmin_daily export --all --split
 ```
 
-Exports and credentials stay out of version control through `.gitignore`.
-Choose `--output` when working with a directory that should not contain
-health data by default.
+`--all` backfills the whole account history and can run for hours.
+It resumes where it stopped. Do not start it for a daily question.
+
+Data, exports, and credentials stay out of version control through
+`.gitignore`. The store defaults to `./data`; override with `--data`
+or `GARMIN_DATA_DIR`.
